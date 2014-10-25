@@ -1,0 +1,84 @@
+---
+title: "Weight Lifting Exercise Prediction Using Machine Learning"
+author: "Isaac Lawrence"
+date: "10/25/2014"
+output: html_document
+---
+
+Using devices such as *Jawbone Up*, *Nike FuelBand*, and *Fitbit* it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: <http://groupware.les.inf.puc-rio.br/har> (see the section on the Weight Lifting Exercise Dataset). 
+
+## Data processing
+
+```{r libraries,echo=FALSE,include=FALSE}
+library(data.table)
+library(caret)
+library(ggplot2)
+library(knitr)
+library(xtable)
+library(randomForest)
+```
+
+The training data for this project are available here: 
+
+<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv>
+
+The test data are available here: 
+
+<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv>
+
+
+We load the training data into a data frame, then remove any columns with NA values, or non-numeric data:
+
+```{r, cache=TRUE}
+training <-  data.frame(fread("pml-training.csv", na.strings=c("#DIV/0!", "")))
+training$classe <- as.factor(training$classe)
+training  <- training[,colSums(is.na(training)) == 0]
+training <- training[,-c(1:7)]
+trainingCols <- names(training)
+```
+
+We then create training and testing partitions, splitting on the *classe* variable, containing 60% and 40% of the data, respectively:
+
+```{r, cache=TRUE}
+inTrain = createDataPartition(training$classe, p = 0.6)[[1]]
+train = training[inTrain,]
+test = training[-inTrain,]
+```
+
+## Machine learning model
+
+Since we don't have much domain background knowledge that would allow us to guess at the underlying model, and we have dozens of numeric variables to use in our prediction, it seems reasonable to try a Random Forest model.  We create a Random Forest model to predict the *classe* variable using 50 trees and the numeric data from the training data set:
+
+```{r, cache=TRUE}
+set.seed(123)
+modFit <- randomForest(classe ~ .,train,ntree=50)
+```
+
+We will see in the following section that the out of sample error rate, as predicted by the testing data set is <1%, so this model seems sufficient.
+
+## Cross validation and out of sample error rate
+
+We use our model to predict the *classe* variable for the records in the test data set.  We then build a confusion matrix to asses the accuracy of the model:
+
+```{r, cache=TRUE}
+test_predictions <- predict(modFit,test)
+CM <- confusionMatrix(test$classe,test_predictions)
+```
+
+The model seems to work pretty well, as we can see in the table below, which compares predictions to actual values:
+
+```{r, results='asis', cache=TRUE}
+print(xtable(CM$table), type = 'html')
+```
+
+Furthermore, we can see that specicifity and sensitivity are 99% or greater for all classes:
+
+```{r, results='asis', cache=TRUE}
+print(xtable(CM$byClass), type = 'html')
+```
+
+We see that the accuracy is >99% when our model is applied to the test data set, so we would expect the out of sample error rate to be <1%.
+
+```{r}
+CM$overall
+```
