@@ -71,7 +71,7 @@ The model seems to work pretty well, as we can see in the table below, which com
 print(xtable(CM$table), type = 'html')
 ```
 
-Furthermore, we can see that specicifity and sensitivity are 99% or greater for all classes:
+Furthermore, we can see that specicifity and sensitivity >98% or greater for all classes:
 
 ```{r, results='asis', cache=TRUE}
 print(xtable(CM$byClass), type = 'html')
